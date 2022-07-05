@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
+from django.core.cache import cache
 from django.test import Client, TestCase
 from posts.models import Group, Post
 
@@ -33,6 +34,7 @@ class StaticURLTests(TestCase):
         self.authorized_client.force_login(self.user)
         self.authorized_author_client = Client()
         self.authorized_author_client.force_login(self.author)
+        cache.clear()
 
     def test_all_url_exists_at_desired_location(self):
         """Страницы  доступны любому пользователю."""
@@ -81,6 +83,7 @@ class StaticURLTests(TestCase):
             self.url_adress.get('detail'): 'posts/post_detail.html',
             self.url_adress.get('new'): 'posts/post_create.html',
             self.url_adress.get('edit'): 'posts/post_create.html',
+            '/nonexist-page/': 'core/404.html',
         }
 
         for address, template in templates_url_names.items():

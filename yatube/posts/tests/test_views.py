@@ -260,6 +260,7 @@ class PaginatorViewsTest(TestCase):
     def setUp(self):
         self.authorized_client = Client()
         self.authorized_client.force_login(self.author)
+        cache.clear()
 
     def test_first_page_contains_ten_posts(self):
         """Проверяем, что паджинатор отображает
