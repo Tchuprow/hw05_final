@@ -144,9 +144,18 @@ dmypy.json
 .history/
 
 .mypy_cache
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
 
-# папки со статикой и медиа
+# Pyre type checker
+.pyre/
+.vscode/
+
+.static/
 static/
-yatube/posts/static/
-yatube/media/
+sent_emails/
+.sent_emails/
 
+media/
