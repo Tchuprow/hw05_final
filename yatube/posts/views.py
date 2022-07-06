@@ -61,7 +61,6 @@ def post_create(request):
         post.author = request.user
         post.save()
         return redirect('posts:profile', username=post.author)
-    form = PostForm()
     return render(request, 'posts/post_create.html', {'form': form})
 
 
@@ -137,7 +136,7 @@ def follow_index(request):
 @login_required
 def profile_follow(request, username):
     user = request.user
-    author = User.objects.get(username=username)
+    author = get_object_or_404(User, username=username)
     is_follower = Follow.objects.filter(user=user, author=author)
     if user != author and not is_follower.exists():
         Follow.objects.create(user=user, author=author)
@@ -149,9 +148,9 @@ def profile_follow(request, username):
 @login_required
 def profile_unfollow(request, username):
     author = get_object_or_404(User, username=username)
-    is_follower = Follow.objects.filter(user=request.user, author=author)
-    if is_follower.exists():
-        is_follower.delete()
+    follower_list = Follow.objects.filter(user=request.user, author=author)
+    if follower_list.exists():
+        follower_list.delete()
     return redirect(
         reverse('posts:profile', kwargs={'username': author.username})
     )

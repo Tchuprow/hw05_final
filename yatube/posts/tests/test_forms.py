@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
-from posts.models import Group, Post
+from posts.models import Comment, Group, Post
 
 User = get_user_model()
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
@@ -127,9 +127,9 @@ class PostCreateFormTests(TestCase):
             follow=True,
         )
 
-        response = self.authorized_client.get(
-            reverse('posts:post_detail', kwargs={'post_id': post.id})
+        self.assertFalse(
+            Comment.objects.filter(text='test_comment_2', ).exists()
         )
-
-        self.assertContains(response, 'test_comment')
-        self.assertNotContains(response, 'test_comment_2')
+        self.assertTrue(
+            Comment.objects.filter(text='test_comment', ).exists()
+        )

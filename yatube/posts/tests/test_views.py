@@ -58,6 +58,14 @@ class PostPagesTests(TestCase):
             author=cls.author_2,
             text='test_comment',
         )
+        cls.endpoint = {
+            'home': 'posts:index',
+            'group': 'posts:group_list',
+            'profile': 'posts:profile',
+            'detail': 'posts:post_detail',
+            'new': 'posts:post_create',
+            'edit': 'posts:post_edit',
+        }
 
     @classmethod
     def tearDownClass(cls):
@@ -72,15 +80,18 @@ class PostPagesTests(TestCase):
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
         templates_page_names = {
-            reverse('posts:index'): 'posts/index.html',
-            reverse('posts:group_list', kwargs={'slug': 'test_slug'}):
+            reverse(self.endpoint.get('home')): 'posts/index.html',
+            reverse(self.endpoint.get('group'), kwargs={'slug': 'test_slug'}):
             'posts/group_list.html',
-            reverse('posts:post_create'): 'posts/post_create.html',
-            reverse('posts:post_detail', kwargs={'post_id': '1'}):
+            reverse(self.endpoint.get('new')): 'posts/post_create.html',
+            reverse(self.endpoint.get('detail'), kwargs={'post_id': '1'}):
             'posts/post_detail.html',
-            reverse('posts:profile', kwargs={'username': 'test_username'}):
+            reverse(
+                self.endpoint.get('profile'),
+                kwargs={'username': 'test_username'}
+            ):
             'posts/profile.html',
-            reverse('posts:post_edit', kwargs={'post_id': '1'}):
+            reverse(self.endpoint.get('edit'), kwargs={'post_id': '1'}):
             'posts/post_create.html'
         }
 
@@ -108,7 +119,7 @@ class PostPagesTests(TestCase):
     def test_group_pages_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse('posts:group_list', kwargs={'slug': 'test_slug_2'})
+            reverse(self.endpoint.get('group'), kwargs={'slug': 'test_slug_2'})
         )
         first_object = response.context['group']
         post_image_0 = Post.objects.first().image
@@ -126,7 +137,10 @@ class PostPagesTests(TestCase):
     def test_profile_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse('posts:profile', kwargs={'username': 'test_username_2'})
+            reverse(
+                self.endpoint.get('profile'),
+                kwargs={'username': 'test_username_2'}
+            )
         )
         first_object = response.context['page_obj'][0]
         post_text_0 = first_object.text
@@ -141,7 +155,7 @@ class PostPagesTests(TestCase):
     def test_detail_post_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse('posts:post_detail', kwargs={'post_id': '1'})
+            reverse(self.endpoint.get('detail'), kwargs={'post_id': '1'})
         )
         first_object = response.context['post']
         post_text_0 = first_object.text
@@ -152,7 +166,9 @@ class PostPagesTests(TestCase):
 
     def test_create_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
-        response = self.authorized_client.get(reverse('posts:post_create'))
+        response = self.authorized_client.get(
+            reverse(self.endpoint.get('new'))
+        )
         form_fields = {
             'group': forms.fields.ChoiceField,
         }
@@ -165,7 +181,7 @@ class PostPagesTests(TestCase):
     def test_edit_show_correct_context(self):
         """Шаблон post_edit сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse('posts:post_edit', kwargs={'post_id': '1'})
+            reverse(self.endpoint.get('edit'), kwargs={'post_id': '1'})
         )
         form_fields = {
             'group': forms.fields.ChoiceField,
@@ -180,7 +196,7 @@ class PostPagesTests(TestCase):
     def test_post_another_group(self):
         """Новый пост попадает в нужную группу."""
         response = self.authorized_client.get(
-            reverse('posts:group_list', kwargs={'slug': 'test_slug'})
+            reverse(self.endpoint.get('group'), kwargs={'slug': 'test_slug'})
         )
         first_object = response.context["page_obj"][0]
         post_text_0 = first_object.text
@@ -190,9 +206,14 @@ class PostPagesTests(TestCase):
     def test_post_in_home_and_group_and_profile(self):
         """Новый пост попадает в index, group_list, profile"""
         page_names = (
-            reverse('posts:index'),
-            reverse('posts:group_list', kwargs={'slug': 'test_slug_2'}),
-            reverse('posts:profile', kwargs={'username': 'test_username_2'}),
+            reverse(self.endpoint.get('home')),
+            reverse(
+                self.endpoint.get('group'), kwargs={'slug': 'test_slug_2'}
+            ),
+            reverse(
+                self.endpoint.get('profile'),
+                kwargs={'username': 'test_username_2'}
+            ),
         )
 
         for reverse_name in page_names:
@@ -205,7 +226,7 @@ class PostPagesTests(TestCase):
     def test_comment_create(self):
         """Комментарий появляется на странице"""
         response = self.authorized_client.get(
-            reverse('posts:post_detail', kwargs={'post_id': '2'})
+            reverse(self.endpoint.get('detail'), kwargs={'post_id': '2'})
         )
         count_comment = Comment.objects.count()
 
@@ -214,27 +235,37 @@ class PostPagesTests(TestCase):
 
     def test_cache_index(self):
         """Проверка работы кеша"""
-        response = self.authorized_client.get(reverse('posts:index'))
+        response = self.authorized_client.get(
+            reverse(self.endpoint.get('home'))
+        )
         post = Post.objects.create(
             text='test_cache_post',
             author=self.author,
         )
         cache.clear()
-        response_2 = self.authorized_client.get(reverse('posts:index'))
-        # Проверяем, что пост добавился
-        self.assertNotEqual(response.content, response_2.content)
+        response_create_post = self.authorized_client.get(
+            reverse(self.endpoint.get('home'))
+        )
+
+        self.assertNotEqual(response.content, response_create_post.content)
 
         post.delete()
-        response_3 = self.authorized_client.get(reverse('posts:index'))
+        response_delete_post = self.authorized_client.get(
+            reverse(self.endpoint.get('home'))
+        )
 
-        # Проверяем, что после удаления поста, страница не изменилась.
-        self.assertEqual(response_2.content, response_3.content)
+        self.assertEqual(
+            response_create_post.content, response_delete_post.content
+        )
 
         cache.clear()
-        response_4 = self.authorized_client.get(reverse('posts:index'))
+        response_clear_cache = self.authorized_client.get(
+            reverse(self.endpoint.get('home'))
+        )
 
-        # Страница изменилась после очистки кеша.
-        self.assertNotEqual(response_3.content, response_4.content)
+        self.assertNotEqual(
+            response_delete_post.content, response_clear_cache.content
+        )
 
 
 class PaginatorViewsTest(TestCase):
@@ -302,9 +333,8 @@ class FollowViewTest(TestCase):
             text='test_follow',
         )
 
-    def test_follow_and_unfollow(self):
-        """Авторизованный пользователь может подписаться
-        на автора, а также отписаться."""
+    def test_follow(self):
+        """Авторизованный пользователь может подписаться"""
         self.client_follower.get(
             reverse(
                 'posts:profile_follow',
@@ -312,8 +342,20 @@ class FollowViewTest(TestCase):
             )
         )
 
-        self.assertEqual(Follow.objects.all().count(), 1)
+        self.assertTrue(
+            Follow.objects.filter(
+                author=self.following, user=self.follower,
+            ).exists()
+        )
 
+    def test_unfollow(self):
+        """А также может отписаться"""
+        self.client_follower.get(
+            reverse(
+                'posts:profile_follow',
+                kwargs={'username': self.following.username}
+            )
+        )
         self.client_follower.get(
             reverse(
                 'posts:profile_unfollow',
@@ -321,7 +363,11 @@ class FollowViewTest(TestCase):
             )
         )
 
-        self.assertEqual(Follow.objects.all().count(), 0)
+        self.assertFalse(
+            Follow.objects.filter(
+                author=self.following, user=self.follower,
+            ).exists()
+        )
 
     def test_subscription_feed(self):
         """Запись появляется в ленте подписчиков...или не появляется"""
