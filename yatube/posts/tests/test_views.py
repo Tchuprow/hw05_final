@@ -58,14 +58,12 @@ class PostPagesTests(TestCase):
             author=cls.author_2,
             text='test_comment',
         )
-        cls.endpoint = {
-            'home': 'posts:index',
-            'group': 'posts:group_list',
-            'profile': 'posts:profile',
-            'detail': 'posts:post_detail',
-            'new': 'posts:post_create',
-            'edit': 'posts:post_edit',
-        }
+        cls.home_address = 'posts:index'
+        cls.group_address = 'posts:group_list'
+        cls.profile_address = 'posts:profile'
+        cls.detail_address = 'posts:post_detail'
+        cls.new_address = 'posts:post_create'
+        cls.edit_address = 'posts:post_edit'
 
     @classmethod
     def tearDownClass(cls):
@@ -80,18 +78,18 @@ class PostPagesTests(TestCase):
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
         templates_page_names = {
-            reverse(self.endpoint.get('home')): 'posts/index.html',
-            reverse(self.endpoint.get('group'), kwargs={'slug': 'test_slug'}):
+            reverse(self.home_address): 'posts/index.html',
+            reverse(self.group_address, kwargs={'slug': 'test_slug'}):
             'posts/group_list.html',
-            reverse(self.endpoint.get('new')): 'posts/post_create.html',
-            reverse(self.endpoint.get('detail'), kwargs={'post_id': '1'}):
+            reverse(self.new_address): 'posts/post_create.html',
+            reverse(self.detail_address, kwargs={'post_id': '1'}):
             'posts/post_detail.html',
             reverse(
-                self.endpoint.get('profile'),
+                self.profile_address,
                 kwargs={'username': 'test_username'}
             ):
             'posts/profile.html',
-            reverse(self.endpoint.get('edit'), kwargs={'post_id': '1'}):
+            reverse(self.edit_address, kwargs={'post_id': '1'}):
             'posts/post_create.html'
         }
 
@@ -119,7 +117,7 @@ class PostPagesTests(TestCase):
     def test_group_pages_show_correct_context(self):
         """Шаблон group_list сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse(self.endpoint.get('group'), kwargs={'slug': 'test_slug_2'})
+            reverse(self.group_address, kwargs={'slug': 'test_slug_2'})
         )
         first_object = response.context['group']
         post_image_0 = Post.objects.first().image
@@ -138,7 +136,7 @@ class PostPagesTests(TestCase):
         """Шаблон profile сформирован с правильным контекстом."""
         response = self.authorized_client.get(
             reverse(
-                self.endpoint.get('profile'),
+                self.profile_address,
                 kwargs={'username': 'test_username_2'}
             )
         )
@@ -155,7 +153,7 @@ class PostPagesTests(TestCase):
     def test_detail_post_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse(self.endpoint.get('detail'), kwargs={'post_id': '1'})
+            reverse(self.detail_address, kwargs={'post_id': '1'})
         )
         first_object = response.context['post']
         post_text_0 = first_object.text
@@ -167,7 +165,7 @@ class PostPagesTests(TestCase):
     def test_create_show_correct_context(self):
         """Шаблон post_create сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse(self.endpoint.get('new'))
+            reverse(self.new_address)
         )
         form_fields = {
             'group': forms.fields.ChoiceField,
@@ -181,7 +179,7 @@ class PostPagesTests(TestCase):
     def test_edit_show_correct_context(self):
         """Шаблон post_edit сформирован с правильным контекстом."""
         response = self.authorized_client.get(
-            reverse(self.endpoint.get('edit'), kwargs={'post_id': '1'})
+            reverse(self.edit_address, kwargs={'post_id': '1'})
         )
         form_fields = {
             'group': forms.fields.ChoiceField,
@@ -196,7 +194,7 @@ class PostPagesTests(TestCase):
     def test_post_another_group(self):
         """Новый пост попадает в нужную группу."""
         response = self.authorized_client.get(
-            reverse(self.endpoint.get('group'), kwargs={'slug': 'test_slug'})
+            reverse(self.group_address, kwargs={'slug': 'test_slug'})
         )
         first_object = response.context["page_obj"][0]
         post_text_0 = first_object.text
@@ -206,12 +204,12 @@ class PostPagesTests(TestCase):
     def test_post_in_home_and_group_and_profile(self):
         """Новый пост попадает в index, group_list, profile"""
         page_names = (
-            reverse(self.endpoint.get('home')),
+            reverse(self.home_address),
             reverse(
-                self.endpoint.get('group'), kwargs={'slug': 'test_slug_2'}
+                self.group_address, kwargs={'slug': 'test_slug_2'}
             ),
             reverse(
-                self.endpoint.get('profile'),
+                self.profile_address,
                 kwargs={'username': 'test_username_2'}
             ),
         )
@@ -226,7 +224,7 @@ class PostPagesTests(TestCase):
     def test_comment_create(self):
         """Комментарий появляется на странице"""
         response = self.authorized_client.get(
-            reverse(self.endpoint.get('detail'), kwargs={'post_id': '2'})
+            reverse(self.detail_address, kwargs={'post_id': '2'})
         )
         count_comment = Comment.objects.count()
 
@@ -236,7 +234,7 @@ class PostPagesTests(TestCase):
     def test_cache_index(self):
         """Проверка работы кеша"""
         response = self.authorized_client.get(
-            reverse(self.endpoint.get('home'))
+            reverse(self.home_address)
         )
         post = Post.objects.create(
             text='test_cache_post',
@@ -244,14 +242,14 @@ class PostPagesTests(TestCase):
         )
         cache.clear()
         response_create_post = self.authorized_client.get(
-            reverse(self.endpoint.get('home'))
+            reverse(self.home_address)
         )
 
         self.assertNotEqual(response.content, response_create_post.content)
 
         post.delete()
         response_delete_post = self.authorized_client.get(
-            reverse(self.endpoint.get('home'))
+            reverse(self.home_address)
         )
 
         self.assertEqual(
@@ -260,7 +258,7 @@ class PostPagesTests(TestCase):
 
         cache.clear()
         response_clear_cache = self.authorized_client.get(
-            reverse(self.endpoint.get('home'))
+            reverse(self.home_address)
         )
 
         self.assertNotEqual(
